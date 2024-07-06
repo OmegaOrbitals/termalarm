@@ -1,21 +1,19 @@
 <html>
 <body>
-  <button id="alarm">Alarm: off</button>
+  <button id="alarm">Alarm</button>
+  <p id="state"></p>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
+    const socket = io();
     const alarmBtn = document.querySelector("#alarm");
-    let alarmState = "off";
+    const stateElem = document.querySelector("#state");
+
+    socket.on("state", (state) => {
+      stateElem.innerText = state;
+    })
 
     alarmBtn.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      alarmState = alarmState == "off" ? "on" : "off";
-      alarmBtn.innerText = `Alarm: ${alarmState}`;
-      fetch("/alarm", {
-        headers: {
-          "Content-Type": "application/json"
-        },
-        method: "POST",
-        body: JSON.stringify({ alarm: alarmState })
-      })
+      socket.emit("alarm");
     })
   </script>
 </body>
