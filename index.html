@@ -1,20 +1,32 @@
 <html>
 <body>
   <button id="alarm">Alarm</button>
-  <p id="state"></p>
+  <button id="torch">torch</button>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const alarmBtn = document.querySelector("#alarm");
-    const stateElem = document.querySelector("#state");
+    const buttons = {
+      alarm: document.querySelector("#alarm"),
+      torch: document.querySelector("#torch")
+    }
 
-    socket.on("state", (state) => {
-      stateElem.innerText = state;
+    socket.on("states", (states) => {
+      for(let type in states) {
+        console.log(states)
+        buttons[type].innerText = `${type.charAt(0).toUpperCase() + type.slice(1)} (${states[type]})`;
+      }
     })
 
-    alarmBtn.addEventListener("click", (ev) => {
-      socket.emit("alarm");
+    socket.on("state", (type, state) => {
+      buttons[type].innerText = `${type.charAt(0).toUpperCase() + type.slice(1)} (${state})`;
     })
+
+    for(let type in buttons) {
+      const button = buttons[type];
+      button.addEventListener("click", (ev) => {
+        socket.emit("button", type);
+      })
+    }
   </script>
 </body>
 </html>

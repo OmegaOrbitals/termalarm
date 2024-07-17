@@ -5,11 +5,27 @@ const { createServer } = require("node:http");
 const { Server } = require("socket.io");
 const server = createServer(app);
 const io = new Server(server);
-
 const path = require("node:path");
 
-let audioProcess;
-let alarmState = "off";
+let processes = {};
+let states = {
+  alarm: "off",
+  torch: "off"
+}
+
+function handleButton(type) {
+  if(type == "alarm") {
+    if(states[type] == "on") {
+      spawn("termux-volume", ["music", "100"]);
+      processes[type] = spawn("ffplay", ["alarm.wav", "-loop", "0", "-af", "volume=4.0", "-autoexit"]);
+    } else if(processes[type]) {
+      processes[type].kill();
+      processes[type] = "";
+    }
+  } else if(states[type] == "torch") {
+    spawn("termux-torch", states[type]);
+  }
+}
 
 app.use(express.json());
 
@@ -18,19 +34,11 @@ app.get("/", (req, res) => {
 })
 
 io.on("connection", (socket) => {
-  socket.emit("state", alarmState);
-  socket.on("alarm", () => {
-    alarmState = alarmState == "on" ? "off" : "on";
-    if(alarmState == "on") {
-      spawn("termux-volume", ["music", "50"]);
-      audioProcess = spawn("ffplay", ["alarm.wav", "-loop", "0", "-autoexit"]);
-    } else {
-      if(audioProcess) {
-        audioProcess.kill();
-        audioProcess = "";
-      }
-    }
-    socket.emit("state", alarmState);
+  socket.emit("states", states);
+  socket.on("button", (type) => {
+    states[type] = states[type] == "on" ? "off" : "on";
+    handleButton(type);
+    socket.emit("state", type, states[type]);
   })
 })
 
